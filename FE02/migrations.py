@@ -5,7 +5,7 @@ import pymongo
 
 class migrations:
     def __init__(self):
-        #self.run_requirements()
+        self.run_requirements()
         self.OracleConnection = self.connect(option="Oracle")
         self.MongoConnection = self.connect(option="MongoDB")  
         if self.OracleConnection!=None and self.MongoConnection!=None:
@@ -175,6 +175,6 @@ class migrations:
                 return None
 
     def run_requirements(self):
-        os.command('pip install -r requirements.txt')
+        os.system('pip install -r requirements.txt')
 
 migrations()
