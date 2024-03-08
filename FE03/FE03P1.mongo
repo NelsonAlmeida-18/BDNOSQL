@@ -1,0 +1,160 @@
+[1]	Listar todas as bases de dados após a instalação do container com a imagem do MongoDB.
+show dbs
+
+[2]	Criar uma base de dados denominada “customers”.
+use customers
+
+[3]	Verificar a criação da base de dados.
+db
+
+[4]	Criar uma coleção denominada “customers”.
+db.createCollection("customers")
+
+[5]	Validar a criação da coleção.
+show collections
+
+[6]	Criar um cliente com os seguintes características: first_name: "John", last_name: "Doe", age: 30
+db.customers.insertOne({first_name: "John", last_name:" Doe", age:30})
+
+[7]	Introduzir 2 clientes na coleção com uma só instrução criada com as seguintes características:
+first_name: "Steven", last_name:"Williams", gender: "male"
+first_name: "Mary", last_name: "Troy", age: 19
+
+var clients = [{ first_name: "Steven", last_name:"Williams", gender: "male" }, {first_name: "Mary", last_name: "Troy", age: 19}]
+db.customers.insertMany(clients)
+--or--
+db.customers.insertOne({ first_name: "Steven", last_name:"Williams", gender: "male" })
+db.customers.insertOne({ first_name: "Mary", last_name: "Troy", age: 19})
+
+
+[8]	Introduzir mais um cliente com as seguintes características:
+first_name: "Ric", last_name: "Foe", address: {street: "4 main st", city: "Boston"}
+
+db.customers.insertOne({first_name: "Ric", last_name: "Foe", address: {street: "4 main st", city: "Boston"}})
+
+[9]	Criar um cliente com as seguintes características:
+first_name: "Ana", last_name: "Durant", degree:["phD","Msc"], address: {street: "4 Square Garden", city: "New York"}, age: 32
+
+db.customers.insertOne({first_name: "Ana", last_name: "Durant", degree:["phD","Msc"], address: {street: "4 Square Garden", city: "New York"}, age: 32})
+
+[10]	Criar um cliente com as seguintes características:
+first_name: "Natalia", last_name: "Will", age: 44, gender: "female"
+
+db.customers.insertOne({first_name: "Natalia", last_name: "Will", age: 44, gender: "female"})
+
+[11]	Listar todos os clientes.
+
+db.customers.find()
+
+[12]	Efetuar uma atualização ao cliente ‘Ric’, colocar idade 45.
+
+--Primeiro vamos ver que caracteristicas tem o cliente de primeiro nome Ric
+db.customers.find({first_name: "Ric"})
+-->  {
+    _id: ObjectId('65eb19a192b8d51dab2282f1'),
+    first_name: 'Ric',
+    last_name: 'Foe',
+    address: { street: '4 main st', city: 'Boston' }
+  }
+
+-- Vemos que este não tem idade
+--Vamos então adicionar esta característica ao mesmo
+db.customers.updateOne({first_name:"Ric"}, {$set: {age: 44}})
+-- Vamos verificar se esta atualização surtiu o efeito
+db.customers.find({first_name: "Ric"})
+
+-->  {
+    _id: ObjectId('65eb19a192b8d51dab2282f1'),
+    first_name: 'Ric',
+    last_name: 'Foe',
+    address: { street: '4 main st', city: 'Boston' },
+    age: 44
+  }
+
+[13]	Encontrar todos os clientes que tenham ‘Will’ no último nome.
+
+-- Caso sejam os clientes cujo último nome seja Will executamos o seguinte comando
+db.customers.find({last_name: "Will"})
+--or--
+-- Caso queiramos os clientes cujo último nome contenha "Will" então executamos o seguinte
+db.customers.find({last_name: {$regex: ".*Will.*"}})
+
+[14]	Efetuar uma atualização ao cliente ‘Steven’, colocar idade 35.
+
+db.customers.find({first_name: "Steven"})
+
+db.customers.updateOne({first_name: "Steven"}, {$set: {age:35}})
+
+[15]	Verificar se a idade da cliente ‘Ana’ é superior a 30 e se sim aumentar a idade em 10 anos.
+
+db.customers.updateOne(
+    {first_name: "Ana"}, 
+    {
+        $set: {
+            age: {
+                $cond: {
+                    if: {$gte: ["$age", 30]},
+                    then: {$add: ["$age", 10]},
+                    else: "$age"
+                }
+            }
+        }
+    }
+)
+
+-- or --
+var result = db.customers.findOne({first_name: "Ana"})
+if (result.age >= 30) {
+    db.customers.updateOne(
+        {first_name: "Ana"},
+        {$set: {age: result.age + 10}}
+    );
+}
+
+--or--
+db.customers.updateOne(
+    {first_name: "Ana"},
+    {
+        $set: {
+            age: {
+                $cond: {
+                    if: {$gte: ["$age", 30]},
+                    then: "$age"+10,
+                    else: "$age"
+                }
+            }
+        }
+    }
+)
+
+[16]	O cliente ‘Ric’ quer que a sua idade seja removida da base de dados.
+ 
+ db.customers.updateOne({first_name: "Ric"}, {$unset: {age: ""}})
+
+[17]	Procurar um cliente com o primeiro nome: "Jimmy" e atualizar, ou criar, caso não exista, com as seguintes características.:
+first_name: "Jimmy", last_name: "Connors", age: 25, gender: male
+
+var result = db.customers.find({first_name: "Jimmy"})
+if (result.size>0) {
+    db.customers.updateOne({first_name: "Jimmy"}, {$set: {last_name: "Connors", age: 25}});
+} else {
+    db.customers.insertOne({first_name: "Jimmy", last_name: "Connors", age: 25});
+}
+
+[18]	Procurar todos os clientes com idade superior ou igual a 25.
+
+db.customers.find({age: {$gte: 25}})
+
+[19]	Procurar todos os clientes sexo masculino.
+
+db.customers.find({gender: "male"})
+
+[20]	Apagar o cliente cujo primeiro nome é "Mary".
+
+db.customers.deleteOne({first_name: "Mary"})
+
+[21]	Encontrar os clientes com o nome "Ana" ou "Ric".
+
+db.customers.find({first_name: {$in: ["Ana", "Ric"]}})
+--or--
+db.customers.find({first_name: {$regex: "Ana|Ric"}})

@@ -1,0 +1,100 @@
+[1]	liste todos os documentos na coleção restaurants.
+db.restaurants.find()
+
+[2]	liste apenas os campos restaurante_id, name, borough e cuisine para todos os documentos na coleção.
+
+db.restaurants.find({})
+
+[3]	liste os campos restaurante_id, name, borough e cuisine para todos os documentos na coleção, mas que exclua o campo _id.
+db.restaurants.find({}, {_id:0,restaurant_id:1, name:1, borough:1, cuisine:1})
+
+[4]	liste os campos restaurante_id, name, borough e zipcode para todos os documentos na coleção, mas que exclua o campo _id.
+db.restaurants.find({}, {_id:0,restaurant_id:1, name:1, borough:1, address:{zipcode:1}})
+
+[5]	liste os restaurantes que estão localizados no bairro (borough) "Bronx".
+db.restaurants.find({borough: "Bronx"})
+
+[6]	liste os primeiros 5 restaurantes que estão localizados no bairro (borough) "Bronx".
+db.restaurants.find({borough: "Bronx"}).limit(5)
+
+[7]	liste os 5 restaurantes após os primeiros 5 (do 6º ao 10º) que estão localizados no bairro (borough) "Bronx".
+db.restaurants.find({borough: "Bronx"}).skip(5).limit(5)
+
+[8]	liste todos os restaurantes que têm pelo menos uma pontuação (score) maior que 90.
+db.restaurants.find({grades: {$elemMatch: {score : {$gte : 90}}}})
+ 
+[9]	liste todos os restaurantes que têm uma pontuação (score) maior que 80 mas menor que 100.
+db.restaurants.find({grades: {$elemMatch: {score : {$gte : 80, $lte: 100}}}})
+
+[10]	liste todos os restaurantes que estão localizados numa latitude (coordinates.0) menor que -95.754168.
+    [0,1]
+address: coord: coordinates:
+db.restaurants.find({"address.coord.coordinates.0": {$lte: -95.754168}})
+
+
+[11]	liste todos os restaurantes cujo tipo de cozinha (cuisine) não seja "American", que a sua pontuação (score) seja maior que 70 e a latitude (address .coord.0) menor que -65.754168, utilizando o operador $and.
+db.restaurants.find({
+  $and: [
+    { cuisine: { $ne: "American" } },
+    { grades: { $elemMatch: { score: { $gte: 70 } } } },
+    { "address.coord.coordinates.0": { $lte: -65.754168 } }
+  ]
+})
+
+[12]	liste todos os restaurantes cujo tipo de cozinha (cuisine) não seja "American", que a sua pontuação (score) seja maior que 70 e a latitude (address .coord.0) menor que -65.754168.
+db.restaurants.find({ 
+    cuisine: { $ne: "American" }, 
+    grades: { $elemMatch: { score: { $gte: 70 } } }, 
+    "address.coord.coordinates.0": { $lte: -65.754168 }  
+})
+
+[13]	liste todos os restaurantes cujo tipo de cozinha (cuisine) não seja do tipo "American" e que tenham atingido uma classificação (grade) de "A" mas que não pertençam ao bairro (borough) de "Brooklyn". Deverá ser apresentada de acordo com o tipo de cozinha (cuisine) em ordem descendente.
+db.restaurants.find({
+  $and: [
+    { cuisine: { $ne: "American" } },
+    { grades: { $elemMatch: { grade: { $eq: "A" } } } },
+    { borough : {$ne : "Brooklyn"}}
+  ]
+}).sort({cuisine : 1})
+
+--or--
+db.restaurants.find({ 
+    cuisine: { $ne: "American" } , 
+    grades: { $elemMatch: { grade: { $eq: "A" } } }, 
+    borough : {$ne : "Brooklyn"} 
+}).sort({cuisine : 1})
+
+[14]	liste todos os restaurantes que pertençam ao bairro (borough) "Bronx" e cujo tipo de cozinha (cuisine) seja quer "American" quer "Chinese".
+db.restaurants.find({
+    borough: "Bronx",
+    cuisine: {$in: ["American", "Chinese"]}
+})
+--or--
+db.restaurants.find({
+    borough: "Bronx",
+    cuisine: {$regex: "American|Chinese"}
+})
+
+[15]	liste todos os restaurantes que contenham informação da rua (address.street).
+db.restaurants.find({
+    "address.street": {$ne :  null}
+})
+
+[16]	liste todos os restaurantes de forma ascendente pelo tipo de cozinha (cuisine) e descendente pelo bairro (borough).
+db.restaurants.find({}).sort({cuisine:1, borough:-1})
+
+[17]	liste o restaurant_id, name, address e localização geográfica (coord) para os restaurantes cujo segundo elemento do array da localização geográfica (coord) seja maior que 42 e até 52.
+db.restaurants.find({"address.coord.coordinates.1":{$lte: 52, $gte: 42}},{_id:0,restaurant_id:1, address:1})
+
+[18]	liste os restaurantes (restaurante_id, name, borough, cuisine) que não conseguiram uma pontuação (score) maior que 10.
+db.restaurants.find(
+    {"grades.score": {$not: {$gt: 10}}},
+    {restaurant_id: 1, name: 1, borough: 1, cuisine: 1, _id: 0}
+)
+
+[19]	liste todos os restaurantes (restaurante_id, name, borough e cuisine) que não pertencem ao bairro (borough) de "Staten Islan", ou "Queens" ou "Bronx" ou "Brooklyn".
+db.restaurants.find({borough: {$nin: ["Staten Islan", "Queens", "Bronx", "Brooklyn"]}}, {_id:0, restaurant_id:1, name:1, borough:1, cuisine:1})
+
+[20]	Atualize o campo "name" de um restaurante específico com o restaurante_id igual a " 30191841" para um novo nome, por exemplo, "NewName Restaurant".
+db.restaurants.updateOne({restaurant_id: "40356018"}, {$set: {name: "NewName Restaurant"}})
+db.restaurants.find({restaurant_id: "40356018"}, {_id:0,name:1})
