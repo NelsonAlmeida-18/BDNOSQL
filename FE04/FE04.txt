@@ -1,0 +1,201 @@
+-- [1] Encontrar o número de filmes lançados por ano, ordenados por ano de lançamento.
+db.movies.aggregate([
+    {
+    $group : {
+        _id: {
+            $year: {
+                $toDate: '$released'
+            }
+        },
+        count: {
+            $sum: 1
+        }
+    }
+    },
+    {$sort : {
+        _id : 1
+    }}
+
+])
+
+-- [2] Agrupe os filmes por classificação indicativa (considerar apenas os tipos: G, PG, PG-13, R, NC-17) e calcule a contagem de filmes em cada categoria. Apresentar por ordem alfabética.
+db.movies.aggregate([
+    {
+        $match : {
+            rated : { $in : ["G", "PG-13", "R", "NC-17"]}
+        }
+    },
+    {
+        $group : {
+            _id : '$rated',   
+            count : {
+                $sum : 1
+            }
+        }
+    },
+    {
+        $sort: {
+            _id : 1
+        }
+    }
+])
+
+-- [3] Apresentar o cálculo classificação média para cada género; 
+db.movies.aggregate([
+    {'$unwind' : "$genres"
+    },
+    {
+        '$group' : {
+            '_id' :  '$genres',
+            'averageIMDBrating' : {$avg : '$imdb.rating'}
+        }
+    }
+])
+
+
+-- [4]  Encontrar o ator que apareceu em mais filmes e listar os títulos dos filmes em que ele atuou.
+
+db.movies.aggregate([
+    {
+        '$unwind' : '$cast'
+    },
+    {
+        '$group' : {
+            '_id' : '$cast',
+            'count' : { $sum: 1},
+            'titles' : {$push : '$title'}
+        }
+    }
+])
+
+-- [5]  Encontrar  os  10  diretores  com  a  maior  quantidade  de  filmes  lançados  e  ordená-los  em  ordem decrescente, ignorando os filmes sem diretor. 
+db.movies.aggregate([
+    {'$unwind' : '$directors'},
+    {
+        '$group' : {
+            '_id' : '$directors',
+            'numOfMovies' : {
+                '$sum' : 1
+            }
+        }
+    },
+    {
+        '$sort' : {
+            'numOfMovies' : -1
+        }
+    },
+    {
+        '$limit': 10
+    }
+])
+
+-- [6] Encontrar os 2 filmes de terror mais populares, com base no número de prémios recebidos.  Apresentar apenas o nome e número de prémios. 
+db.movies.aggregate([
+    {
+        '$unwind' : '$genres'
+    },
+    {
+        '$match' :  {
+            'genres' : "Horror"
+        }
+    },
+    {
+        '$group' : {
+            '_id' : '$title',
+            'numOfAwards' : { '$sum': '$awards.wins' }
+        }
+    },
+    {
+        '$sort' : {
+            'numOfAwards' : -1
+        }
+    },
+    {
+        $limit : 2
+    }
+])
+
+-- [7]  Encontrar  os  10  filmes  mais  populares,  com  base  no  número  de  comentários  na  coleção comments. Apresentar apenas o nome e número de comentários. PS: para otimizar a pesquisa não se esqueça de criar os indexes.
+db.comments.createIndex({"movie_id" : 1})
+db.comments.aggregate([
+    { 
+        '$group' : {
+            '_id' : '$movie_id',
+            'numComments' : {
+                '$sum' : 1
+            }
+        }
+    },
+    {
+        '$sort' : {
+            'numComments' : -1
+        }
+    },
+    {
+        '$limit' :  10
+    },
+    {
+        $lookup : {
+            from : 'movies',
+            localField : '_id',
+            foreignField : '_id',
+            as : 'movie' 
+        }
+    },
+    {
+        $project : {
+            _id: 0,
+            'title' : { $arrayElemAt: [ "$movie.title", 0 ] },
+            'numComments' : 1
+        }
+    }
+])
+
+-- [8] Encontrar todos os utilizadores que fizeram comentários em filmes lançados em 2015, juntamente com as  informações  sobre  o  filme  ao  qual  o  comentário  se  refere  e  guardar  os  documentos  resultantes  numa coleção denominada 2015_comments. 
+db.movies.aggregate([
+    {
+        $match : {
+            $expr: {
+                $eq: [
+                    { $year: { $toDate: "$released" } },
+                    2015
+                ]
+            }
+        }
+    },
+    {
+        $lookup: {
+            from: "comments",
+            localField: "_id",
+            foreignField: "movie_id",
+            as: "comments"
+        }
+    },
+    {
+        $unwind: "$comments"
+    },
+    {
+        $project: {
+            _id: 0,
+            movie: "$$ROOT",
+            user: "$comments.name"
+        }
+    },
+    {
+        $out: "2015_comments"
+    }
+])
+
+-- [9] Encontre todos os cinemas que estão localizados num raio de 10 km de uma determinada coordenada geográfica (latitude e longitude). Para isso, pode ser usado o operador $geoNear do MongoDB, que permite encontrar documentos geográficos próximos a um ponto de referência.
+
+db.theaters.createIndex( { "location.geo.coordinates" : "2dsphere" } )
+db.theaters.aggregate([
+{
+     $geoNear: {
+        near: { type: "Point", coordinates: [ -93.24565 , 44.85466 ] },
+        distanceField: "dist.calculated",
+        maxDistance: 10,
+        spherical: true
+     }
+   }
+])
