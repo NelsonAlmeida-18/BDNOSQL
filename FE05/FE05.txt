@@ -1,0 +1,70 @@
+--[1]Find the number of teams that have competed in each of the World Cups:
+MATCH (t:Tournament)<-[:PARTICIPATED_IN]-(team:Team)
+WITH t, count(team) as NumberOfTeams
+RETURN t.year as TournamentYear, NumberOfTeams
+ORDER BY TournamentYear
+
+--[2]  Find all players and coaches for the Brazil squad in the 2011 tournament, returning the persons names and their role (in squad or coach).
+MATCH (t:Tournament {year:2011})
+MATCH(t) <-[a:FOR]-(s:Squad)
+MATCH(team:Team{name:"Brazil"})-[b:NAMED]-(s)
+MATCH(p:Person)-[q:IN_SQUAD|COACH_FOR]->(s)
+return p.name as PersonName, type(q) as Role
+
+--[3]Retrieves all tournaments along with the teams that participated in each tournament, listing the tournament name and a collection of participating team names.
+MATCH (t:Tournament) <- [:PARTICIPATED_IN]-(team:Team)
+WITH t, COLLECT(team.name) AS TeamNames
+return t.name as Tournament, TeamNames
+ORDER by t.year
+
+--[4] Find the player who has participated in the most tournaments.
+MATCH (p:Person)-[:IN_SQUAD]->(s:Squad)-[:FOR]->(t:Tournament)
+WITH p, COUNT(DISTINCT t) as NumberOfTournaments
+RETURN p.name as Player, NumberOfTournaments
+ORDER BY NumberOfTournaments DESC
+LIMIT 1
+
+
+--[5] Return the teams who played in the first day of the 2011 tournament.
+MATCH (T:Tournament {year:2011})
+MATCH (matches:Match)-[:IN_TOURNAMENT]-(T)
+MATCH (team: Team)-[:PLAYED_IN]->(matches)
+return team.name as TeamName
+ORDER BY matches.date ASC
+LIMIT 2
+
+--or--
+
+MATCH (T:Tournament {year:2011})-[:IN_TOURNAMENT]-(matches:Match)-[:PLAYED_IN]-(team:Team)
+WITH team, matches
+ORDER BY matches.date ASC
+RETURN team.name as TeamName
+LIMIT 2
+
+--[6]. Find the players who start the games most frequently for the USA team.
+MATCH (team:Team {name: "USA"})<-[:REPRESENTS]-(player:Person)-[r:PLAYED_IN {type: "Started"}]->(m:Match)
+WITH player, COUNT(r) as NumberOfStarts
+RETURN player.name as Player, NumberOfStarts
+ORDER BY NumberOfStarts DESC
+
+-- [7]. Return the top scorers by country and the respective number of goals.
+MATCH (team:Team)<-[:REPRESENTS]-(p:Person)-[:SCORED_GOAL]->(m:Match)
+WITH team, p, COUNT(m) as NumOfGoals
+RETURN team.name as TeamName, p.name as PlayerName, NumOfGoals
+ORDER BY NumOfGoals DESC
+
+-- [8]. Return goal scoring substitutes as well as their team and number of goals.
+MATCH (team:Team)<-[:REPRESENTS]-(p:Person)-[:PLAYED_IN {type: "Subbed On"}]->(m:Match)
+WHERE (p)-[:SCORED_GOAL]->(m)
+WITH team, p, COUNT(m) as NumOfGoals
+RETURN team.name as TeamName, p.name as PlayerName, NumOfGoals
+ORDER BY NumOfGoals DESC
+
+
+-- [9]. Return the number of finals played by team and the respective years, presenting the teams with most
+finals first.
+
+MATCH (team:Team)-[:PLAYED_IN]->(m:Match {stage: "Final"})-[:IN_TOURNAMENT]->(t:Tournament)
+WITH team, COLLECT(t.year) as Years, COUNT(m) as NumberOfFinals
+RETURN team.name as Team, Years, NumberOfFinals
+ORDER BY NumberOfFinals DESC
